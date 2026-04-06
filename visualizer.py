@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec
@@ -48,14 +50,15 @@ class Visualizer:
         self.ax_state = self.fig.add_subplot(gs[1])
         self.ax_state.axis("off")
 
-        self._setup_axes()
-
         # Precompute virtual time at each tick boundary (after tick executes).
         self._vt_boundaries = self._compute_vt_boundaries()
+        self._max_vt = self._vt_boundaries[-1] if self._vt_boundaries[-1] > 0 else 1.0
+
+        self._setup_axes()
 
         # Animated artists that we update each frame.
         self.time_line = self.ax_real.axvline(1, color="red", lw=1.5)
-        self.virt_line = self.ax_virt.axvline(1, color="red", lw=1.5)
+        self.virt_line = self.ax_virt.axvline(0, color="red", lw=1.5)
         self.state_text = self.ax_state.text(
             0.05, 0.95, "", transform=self.ax_state.transAxes,
             fontsize=10, verticalalignment="top", fontfamily="monospace",
@@ -92,15 +95,17 @@ class Visualizer:
         self.ax_real.set_title("EEVDF Scheduler Visualization", fontsize=13, fontweight="bold")
         self.ax_real.set_xticks(range(self.total_ticks + 1))
 
-        # Virtual time axis — same horizontal space as real time, but
-        # labeled with virtual time values at each tick boundary.
-        # This shows how virtual time stretches / compresses.
-        self.ax_virt.set_xlim(*tick_range)
+        # Virtual time axis — constant linear scale in virtual-time units.
+        # The red line speeds up / slows down as total weight changes.
+        self.ax_virt.set_xlim(0, self._max_vt)
         self.ax_virt.set_ylim(0, 1)
         self.ax_virt.set_yticks([])
         self.ax_virt.set_ylabel("Virtual\nTime", rotation=0, labelpad=40, va="center")
-        # Initially empty — tick labels are added as the animation progresses.
-        self.ax_virt.set_xticks([])
+        # Choose nice evenly-spaced tick marks.
+        vt_step = self._nice_step(self._max_vt, target_ticks=10)
+        vt_ticks = self._arange_nice(0, self._max_vt, vt_step)
+        self.ax_virt.set_xticks(vt_ticks)
+        self.ax_virt.set_xticklabels([self._fmt_vt(v) for v in vt_ticks])
 
         # Per-client axes.
         for i, ax in enumerate(self.ax_clients):
@@ -136,17 +141,15 @@ class Visualizer:
                 )
                 self.ax_clients[ci].add_patch(rect)
 
-        # Both red lines move together at x = real_time + 1
-        # (right edge of the tick that just completed).
-        x = state.real_time + 1
-        self.time_line.set_xdata([x, x])
-        self.virt_line.set_xdata([x, x])
+        # Real time red line moves at constant speed (1 per tick).
+        x_real = state.real_time + 1
+        self.time_line.set_xdata([x_real, x_real])
 
-        # Update virtual time tick labels up to the current boundary.
-        positions = list(range(frame + 2))  # 0 .. frame+1
-        labels = [self._fmt_vt(self._vt_boundaries[i]) for i in positions]
-        self.ax_virt.set_xticks(positions)
-        self.ax_virt.set_xticklabels(labels)
+        # Virtual time red line moves to the actual virtual time value,
+        # so it speeds up when fewer clients are active and slows down
+        # when more clients share the CPU.
+        x_virt = self._vt_boundaries[frame + 1]
+        self.virt_line.set_xdata([x_virt, x_virt])
 
         # State panel text.
         lines = self._build_state_text(state)
@@ -183,6 +186,32 @@ class Visualizer:
             lines.append("")
 
         return "\n".join(lines)
+
+    @staticmethod
+    def _nice_step(data_range: float, target_ticks: int = 10) -> float:
+        """Return a 'nice' step size for axis ticks."""
+        raw = data_range / max(target_ticks, 1)
+        mag = 10 ** math.floor(math.log10(raw)) if raw > 0 else 1
+        normalized = raw / mag
+        if normalized <= 1:
+            nice = 1
+        elif normalized <= 2:
+            nice = 2
+        elif normalized <= 5:
+            nice = 5
+        else:
+            nice = 10
+        return nice * mag
+
+    @staticmethod
+    def _arange_nice(start: float, stop: float, step: float) -> list[float]:
+        """Return evenly spaced values from start up to and including stop."""
+        vals: list[float] = []
+        v = start
+        while v <= stop + step * 1e-9:
+            vals.append(round(v, 6))
+            v += step
+        return vals
 
     @staticmethod
     def _fmt_vt(v: float) -> str:
