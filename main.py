@@ -23,7 +23,7 @@ config = SimulationConfig(
         ),
         ClientConfig(
             name="Client B",
-            weight=8,
+            weight=2,
             request_length=1,
             arrival_tick=1,     # joins at tick 1
         ),

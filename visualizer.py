@@ -67,6 +67,9 @@ class Visualizer:
         # Store patches we've already drawn so we don't duplicate.
         self._drawn_ticks: set[int] = set()
 
+        # Pause state — animation starts paused.
+        self._paused = True
+
     # ---- axis setup -------------------------------------------------------
 
     def _compute_vt_boundaries(self) -> list[float]:
@@ -226,6 +229,22 @@ class Visualizer:
             return "(idle)"
         return state.clients[state.running_client].name
 
+    # ---- play / pause -----------------------------------------------------
+
+    def _on_key(self, event) -> None:
+        """Toggle play/pause on spacebar press."""
+        if event.key != " ":
+            return
+        if self._paused:
+            self.anim.resume()
+            self._paused = False
+            self._pause_text.set_text("")
+        else:
+            self.anim.pause()
+            self._paused = True
+            self._pause_text.set_text("PAUSED  (press Space to resume)")
+        self.fig.canvas.draw_idle()
+
     # ---- public API -------------------------------------------------------
 
     def play(self) -> None:
@@ -237,5 +256,13 @@ class Visualizer:
             interval=self.config.tick_duration_ms,
             repeat=False,
         )
+        # Start paused so the user can begin when ready.
+        self.anim.pause()
+        self._pause_text = self.fig.text(
+            0.35, 0.01, "PAUSED  (press Space to start)",
+            fontsize=11, color="red", fontweight="bold",
+            ha="center",
+        )
+        self.fig.canvas.mpl_connect("key_press_event", self._on_key)
         plt.tight_layout()
         plt.show()
