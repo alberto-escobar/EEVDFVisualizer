@@ -33,6 +33,8 @@ class Client:
     active: bool = False         # True once the client has joined
     pending: list[Request] = field(default_factory=list)
     last_deadline: float = 0.0   # vd of last admitted request
+    virtual_time_at_join: float = 0.0  # V(t) when client became active
+    service_received: int = 0          # actual ticks of service received
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +56,7 @@ class ClientSnapshot:
     active: bool
     pending_count: int
     current_request: RequestSnapshot | None
+    lag: float = 0.0
 
 
 @dataclass
@@ -118,6 +121,7 @@ class EEVDFScheduler:
         for client in self.clients:
             if not client.active and client.arrival_tick <= self.real_time:
                 client.active = True
+                client.virtual_time_at_join = self.virtual_time
                 self._admit_new_request(client)
             elif client.active and not client.pending:
                 self._admit_new_request(client)
@@ -145,6 +149,17 @@ class EEVDFScheduler:
 
         return best_index
 
+    def _compute_lag(self, client: Client) -> float:
+        """Compute lag for a client: ideal fair-share service minus actual.
+
+        lag = weight * (V(now) - V(join)) - service_received
+        Positive = under-served, negative = over-served.
+        """
+        if not client.active:
+            return 0.0
+        ideal = client.weight * (self.virtual_time - client.virtual_time_at_join)
+        return ideal - client.service_received
+
     def _snapshot(self, running: int | None) -> TickState:
         client_snaps: list[ClientSnapshot] = []
         for c in self.clients:
@@ -163,6 +178,7 @@ class EEVDFScheduler:
                 active=c.active,
                 pending_count=len(c.pending),
                 current_request=req_snap,
+                lag=round(self._compute_lag(c), 4),
             ))
         return TickState(
             real_time=self.real_time,
@@ -195,10 +211,12 @@ class EEVDFScheduler:
 
             # 5. Execute one tick of work.
             if running is not None:
-                req = self.clients[running].pending[0]
+                client = self.clients[running]
+                req = client.pending[0]
                 req.remaining -= 1
+                client.service_received += 1
                 if req.remaining <= 0:
-                    self.clients[running].pending.pop(0)
+                    client.pending.pop(0)
 
             # 6. Advance virtual time using pre-execution weight.
             if w > 0:

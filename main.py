@@ -24,8 +24,8 @@ config = SimulationConfig(
         ClientConfig(
             name="Client B",
             weight=2,
-            request_length=20,
-            arrival_tick=0,     # joins at tick 1
+            request_length=1,
+            arrival_tick=1,     # joins at tick 1
         ),
     ],
     total_ticks=20,

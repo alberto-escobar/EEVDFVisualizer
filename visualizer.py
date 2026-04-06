@@ -175,6 +175,9 @@ class Visualizer:
                 lines.append(f"    ve={r.eligible_time:.4f}  vd={r.deadline:.4f}")
                 lines.append(f"    remaining={r.remaining}/{r.length}")
                 lines.append(f"    queued={cs.pending_count}")
+            if cs.active:
+                lag_sign = "+" if cs.lag > 0 else ""
+                lines.append(f"    lag={lag_sign}{cs.lag:.4f}")
             elif cs.active:
                 lines.append("    (between requests)")
             lines.append("")
