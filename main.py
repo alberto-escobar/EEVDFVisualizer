@@ -13,6 +13,43 @@ from visualizer import Visualizer
 #  CONFIGURATION — edit this section to set up your scenario
 # ──────────────────────────────────────────────────────────────────────────
 
+# config = SimulationConfig(
+#     clients=[
+#         ClientConfig(
+#             name="Interactive",
+#             weight=3,            # higher weight = more CPU share
+#             request_length=1,    # short bursts
+#             arrival_tick=0,
+#         ),
+#         ClientConfig(
+#             name="Batch 1",
+#             weight=1,            # normal weight
+#             request_length=4,
+#             arrival_tick=0,
+#         ),
+#         ClientConfig(
+#             name="Batch 2",
+#             weight=1,
+#             request_length=4,
+#             arrival_tick=0,
+#         ),
+#         ClientConfig(
+#             name="Batch 3",
+#             weight=1,            # low weight (like nice 5 in CFS)
+#             request_length=4,
+#             arrival_tick=0,
+#         ),
+#         ClientConfig(
+#             name="Batch 4",
+#             weight=1,
+#             request_length=4,
+#             arrival_tick=0,
+#         ),
+#     ],
+#     total_ticks=40,
+#     tick_duration_ms=2000,   # animation speed (lower = faster)
+# )
+
 config = SimulationConfig(
     clients=[
         ClientConfig(
