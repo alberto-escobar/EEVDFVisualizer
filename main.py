@@ -13,6 +13,7 @@ from visualizer import Visualizer
 #  CONFIGURATION — edit this section to set up your scenario
 # ──────────────────────────────────────────────────────────────────────────
 
+# demo 1
 config = SimulationConfig(
     clients=[
         ClientConfig(
@@ -32,6 +33,7 @@ config = SimulationConfig(
     tick_duration_ms=1000,   # animation speed (lower = faster)
 )
 
+# demo 2
 # config = SimulationConfig(
 #     clients=[
 #         ClientConfig(
@@ -50,13 +52,14 @@ config = SimulationConfig(
 #             name="Client C",
 #             weight=4,
 #             request_length=1,
-#             arrival_tick=4, 
+#             arrival_tick=4,     # joins at tick 4
 #         )
 #     ],
 #     total_ticks= 20,
 #     tick_duration_ms=1000,   # animation speed (lower = faster)
 # )
 
+# demo 3
 # config = SimulationConfig(
 #     clients=[
 #         ClientConfig(
