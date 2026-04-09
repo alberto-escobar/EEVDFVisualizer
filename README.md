@@ -4,6 +4,8 @@ Animated visualizer for the Earliest Eligible Virtual Deadline First scheduling 
 
 ## Setup
 
+Make sure to install uv. Usually you can install this via pip. Once installed:
+
 ```sh
 uv sync
 ```
