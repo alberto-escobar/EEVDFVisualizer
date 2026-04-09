@@ -13,43 +13,6 @@ from visualizer import Visualizer
 #  CONFIGURATION — edit this section to set up your scenario
 # ──────────────────────────────────────────────────────────────────────────
 
-# config = SimulationConfig(
-#     clients=[
-#         ClientConfig(
-#             name="Interactive",
-#             weight=3,            # higher weight = more CPU share
-#             request_length=1,    # short bursts
-#             arrival_tick=0,
-#         ),
-#         ClientConfig(
-#             name="Batch 1",
-#             weight=1,            # normal weight
-#             request_length=4,
-#             arrival_tick=0,
-#         ),
-#         ClientConfig(
-#             name="Batch 2",
-#             weight=1,
-#             request_length=4,
-#             arrival_tick=0,
-#         ),
-#         ClientConfig(
-#             name="Batch 3",
-#             weight=1,            # low weight (like nice 5 in CFS)
-#             request_length=4,
-#             arrival_tick=0,
-#         ),
-#         ClientConfig(
-#             name="Batch 4",
-#             weight=1,
-#             request_length=4,
-#             arrival_tick=0,
-#         ),
-#     ],
-#     total_ticks=40,
-#     tick_duration_ms=2000,   # animation speed (lower = faster)
-# )
-
 config = SimulationConfig(
     clients=[
         ClientConfig(
@@ -63,11 +26,73 @@ config = SimulationConfig(
             weight=2,
             request_length=1,
             arrival_tick=1,     # joins at tick 1
-        ),
+        )
     ],
-    total_ticks=20,
-    tick_duration_ms=2000,   # animation speed (lower = faster)
+    total_ticks= 20,
+    tick_duration_ms=1000,   # animation speed (lower = faster)
 )
+
+# config = SimulationConfig(
+#     clients=[
+#         ClientConfig(
+#             name="Client A",
+#             weight=2,
+#             request_length=2,   # each recurring request takes 2 ticks
+#             arrival_tick=0,     # joins at tick 0
+#         ),
+#         ClientConfig(
+#             name="Client B",
+#             weight=2,
+#             request_length=1,
+#             arrival_tick=1,     # joins at tick 1
+#         ),
+#         ClientConfig(
+#             name="Client C",
+#             weight=4,
+#             request_length=1,
+#             arrival_tick=4, 
+#         )
+#     ],
+#     total_ticks= 20,
+#     tick_duration_ms=1000,   # animation speed (lower = faster)
+# )
+
+# config = SimulationConfig(
+#     clients=[
+#         ClientConfig(
+#             name="Client A",
+#             weight=2,
+#             request_length=2,   # each recurring request takes 2 ticks
+#             arrival_tick=0,     # joins at tick 0
+#         ),
+#         ClientConfig(
+#             name="Client B",
+#             weight=2,
+#             request_length=1,
+#             arrival_tick=1,     # joins at tick 1
+#         ),
+#         ClientConfig(
+#             name="Client C",
+#             weight=4,
+#             request_length=1,
+#             arrival_tick=4,     # joins at tick 4
+#         ),
+#                 ClientConfig(
+#             name="Client D",
+#             weight=1,
+#             request_length=3,
+#             arrival_tick=6,     # joins at tick 6
+#         ),
+#                 ClientConfig(
+#             name="Client E",
+#             weight=8,
+#             request_length=3,
+#             arrival_tick=10,     # joins at tick 10
+#         ),
+#     ],
+#     total_ticks= 50,
+#     tick_duration_ms=1000,   # animation speed (lower = faster)
+# )
 
 
 # ──────────────────────────────────────────────────────────────────────────

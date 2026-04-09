@@ -67,6 +67,7 @@ class TickState:
     total_weight: int
     running_client: int | None
     clients: list[ClientSnapshot]
+    phase: str = "running"   # "deciding" | "running"
 
 
 # ---------------------------------------------------------------------------
@@ -128,11 +129,12 @@ class EEVDFScheduler:
 
     def _select_client(self) -> int | None:
         """Pick the eligible client with the earliest virtual deadline.
-        Ties are broken by later eligible time (prefer the client that
-        has waited longer without service)."""
+        Ties are broken by lag — prefer the most under-served client
+        (highest lag)."""
         best_index: int | None = None
         best_deadline = float("inf")
-        best_eligible = -1.0
+        best_lag = float("-inf")
+        best_name = ""
 
         for client in self.clients:
             if not client.pending:
@@ -140,12 +142,17 @@ class EEVDFScheduler:
             req = client.pending[0]
             # Eligible: ve <= current virtual time
             if req.eligible_time <= self.virtual_time + 1e-9:
+                lag = self._compute_lag(client)
                 if (req.deadline < best_deadline - 1e-9 or
                         (abs(req.deadline - best_deadline) < 1e-9 and
-                         req.eligible_time > best_eligible)):
+                         lag > best_lag + 1e-9) or
+                        (abs(req.deadline - best_deadline) < 1e-9 and
+                         abs(lag - best_lag) < 1e-9 and
+                         client.name > best_name)):
                     best_index = client.index
                     best_deadline = req.deadline
-                    best_eligible = req.eligible_time
+                    best_lag = lag
+                    best_name = client.name
 
         return best_index
 
@@ -160,7 +167,7 @@ class EEVDFScheduler:
         ideal = client.weight * (self.virtual_time - client.virtual_time_at_join)
         return ideal - client.service_received
 
-    def _snapshot(self, running: int | None) -> TickState:
+    def _snapshot(self, running: int | None, phase: str = "running") -> TickState:
         client_snaps: list[ClientSnapshot] = []
         for c in self.clients:
             req_snap = None
@@ -186,12 +193,21 @@ class EEVDFScheduler:
             total_weight=self.total_weight,
             running_client=running,
             clients=client_snaps,
+            phase=phase,
         )
 
     # -- public API ---------------------------------------------------------
 
     def run(self, total_ticks: int) -> list[TickState]:
-        """Simulate *total_ticks* ticks and return per-tick state history."""
+        """Simulate *total_ticks* ticks and return per-tick state history.
+
+        Each tick emits two TickState entries:
+          1. phase="deciding" — state after activating clients but before
+             selecting who runs.  The visualizer auto-pauses here so the
+             presenter can ask the audience who they think runs next.
+          2. phase="running"  — state showing which client was actually
+             selected to run this tick.
+        """
         history: list[TickState] = []
 
         for t in range(total_ticks):
@@ -200,16 +216,19 @@ class EEVDFScheduler:
             # 1. Activate new clients & give idle clients a fresh request.
             self._activate_clients()
 
-            # 2. Pick which client to run this tick.
+            # 2. DECIDING snapshot — shown before the selection is revealed.
+            history.append(self._snapshot(None, phase="deciding"))
+
+            # 3. Pick which client to run this tick.
             running = self._select_client()
 
-            # 3. Snapshot state *before* execution (what the viewer sees).
-            history.append(self._snapshot(running))
+            # 4. RUNNING snapshot — shows who actually runs.
+            history.append(self._snapshot(running, phase="running"))
 
-            # 4. Capture weight *before* execution (client is active this tick).
+            # 5. Capture weight *before* execution (client is active this tick).
             w = self.total_weight
 
-            # 5. Execute one tick of work.
+            # 6. Execute one tick of work.
             if running is not None:
                 client = self.clients[running]
                 req = client.pending[0]
@@ -218,7 +237,7 @@ class EEVDFScheduler:
                 if req.remaining <= 0:
                     client.pending.pop(0)
 
-            # 6. Advance virtual time using pre-execution weight.
+            # 7. Advance virtual time using pre-execution weight.
             if w > 0:
                 self.virtual_time += 1.0 / w
 
